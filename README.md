@@ -164,10 +164,10 @@ npm test
 Manual flow:
 
 1. Open the app. Confirm the visualizer and logo render.
-3. Type a short vibe (for example `sea`) and send. Status should move, then audio.
-4. Attach a small `.mid`. Confirm a crop status, then a loop.
-5. Attach a short audio file. Confirm analysis copy, then a loop.
-6. Record a few seconds and download. File should have sound.
+2. Type a short vibe (for example `sea`) and send. Status should move, then audio.
+3. Attach a small `.mid`. Confirm a crop status, then a loop.
+4. Attach a short audio file. Confirm analysis copy, then a loop.
+5. Record a few seconds and download. File should have sound.
 
 ## 🤝 How Cursor was used to build Flow
 
