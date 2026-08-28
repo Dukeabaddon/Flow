@@ -37,7 +37,7 @@ Keys are for local private use, not a public deploy.
 | 🔑 **3-key Cerebras rotation** | `VITE_CEREBRAS_KEY_A/B/C` round-robin with retry on 401 / 402 / 429 |
 | 📎 **MIDI attach** | `.mid` / `.midi` distilled to a Strudel loop (first 60s, bar-aligned) |
 | 🎧 **Audio attach** | Offline analysis (duration, BPM estimate, energy) steers an experiment prompt |
-| 🌊 **Cymatic visualizer** | WebGL background driven by the live analyser |
+| 🌊 **WebGL visualizer** | Fullscreen shader background driven by the live analyser |
 | ⏺️ **Local recording** | MediaRecorder capture, download on your machine |
 | 🧪 **Gates + validator** | 20 MB / 5 min files, 30-line code cap, Strudel primitive check |
 
@@ -49,7 +49,7 @@ Keys are for local private use, not a public deploy.
 | Bundler | Vite | 6.x |
 | Audio | `@strudel/web` + `@strudel/soundfonts` | 1.3.0 |
 | MIDI | `@tonejs/midi` | 2.0.x |
-| Visuals | Custom WebGL cymatic shaders | in-repo |
+| Visuals | Custom WebGL shaders | in-repo |
 | Generation | Cerebras `gpt-oss-120b` | rotating keys |
 | Unit tests | Vitest | 4.1.x |
 | E2E | Playwright | 1.62.x |
@@ -61,7 +61,7 @@ Keys are for local private use, not a public deploy.
 Browser (React + Vite)
   ├─ Prompt bar + MIDI / audio attach
   ├─ Strudel engine + MediaRecorder
-  └─ Cymatic visualizer (analyser → shaders)
+  └─ WebGL visualizer (analyser → shaders)
            │
            ▼  generatePattern(prompt, currentCode)
   Cerebras chat completions
@@ -111,7 +111,7 @@ Cerebras Strudel code
        ↓
 validator (primitives, line cap)
        ↓
-Strudel loop + cymatic visualizer
+Strudel loop + WebGL visualizer
        ↓
 optional local recording
 ```
