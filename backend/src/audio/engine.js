@@ -79,7 +79,9 @@ export async function initEngine() {
     return { audioContext, analyser, scheduler: strudelInstance, gainNode, recordingStream };
   }
 
+  const { setAudioContext } = await import('superdough');
   audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  setAudioContext(audioContext);
 
   analyser = audioContext.createAnalyser();
   analyser.fftSize = 256;

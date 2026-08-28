@@ -50,8 +50,10 @@ export default defineConfig({
       '@strudel/soundfonts',
       '@strudel/webaudio',
       '@strudel/core',
-      'superdough',
     ],
+    // One superdough singleton — prebundling it next to @strudel/web
+    // created a second AudioContext (record was silent).
+    exclude: ['superdough'],
   },
   envDir: path.resolve(__dirname),
   build: {
