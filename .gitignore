@@ -39,3 +39,9 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+
+# Local samples (copyrighted / private — never commit)
+docs/*.mid
+docs/*.midi
+*.mid
+*.midi

@@ -26,23 +26,39 @@ async function tapSuperdoughThroughGain() {
   }
 }
 
+function rebuildOnContext(ctx) {
+  if (!ctx || ctx === audioContext) return;
+  audioContext = ctx;
+  analyser = ctx.createAnalyser();
+  analyser.fftSize = 256;
+  analyser.smoothingTimeConstant = 0.8;
+  gainNode = ctx.createGain();
+  gainNode.gain.value = 0.8;
+  gainNode.connect(analyser);
+  analyser.connect(ctx.destination);
+  const recordingDest = ctx.createMediaStreamDestination();
+  gainNode.connect(recordingDest);
+  recordingStream = recordingDest.stream;
+}
+
 function installDestinationTap() {
-  if (!audioContext || !gainNode || !analyser) return { installed: false };
   if (AudioNode.prototype._flowOrigConnect) {
     window.__flowHijackCount = window.__flowHijackCount || 0;
     return { installed: true, already: true, hijackCount: window.__flowHijackCount };
   }
   const orig = AudioNode.prototype.connect;
   AudioNode.prototype._flowOrigConnect = orig;
-  const ctx = audioContext;
-  const gain = gainNode;
-  const an = analyser;
   window.__flowHijackCount = 0;
   AudioNode.prototype.connect = function flowConnect(...args) {
     const dest = args[0];
-    if (dest === ctx.destination && this !== an && this !== gain) {
-      args[0] = gain;
-      window.__flowHijackCount = (window.__flowHijackCount || 0) + 1;
+    if (dest && dest === this.context.destination && this !== analyser && this !== gainNode) {
+      if (gainNode && this.context !== gainNode.context) {
+        rebuildOnContext(this.context);
+      }
+      if (gainNode && this.context === gainNode.context) {
+        args[0] = gainNode;
+        window.__flowHijackCount = (window.__flowHijackCount || 0) + 1;
+      }
     }
     return orig.apply(this, args);
   };
@@ -68,16 +84,9 @@ function setStatus(msg) {
 /**
  * Initialize the audio engine. Must be called from a user gesture handler.
  */
-export async function initEngine() {
-  if (audioContext) {
-    if (audioContext.state === 'suspended') {
-      await audioContext.resume();
-    }
-    installDestinationTap();
-    if (soundsReady) await soundsReady;
-    await tapSuperdoughThroughGain();
-    return { audioContext, analyser, scheduler: strudelInstance, gainNode, recordingStream };
-  }
+let boot = null;
+
+async function createEngineOnce() {
 
   const { setAudioContext } = await import('superdough');
   audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -96,54 +105,8 @@ export async function initEngine() {
   gainNode.connect(recordingDest);
   recordingStream = recordingDest.stream;
 
-  const hijack = installDestinationTap();
-  // #region agent log
-  fetch('http://127.0.0.1:7933/ingest/78025de6-1b1b-47cb-aad6-3e716215696d', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '433e41' },
-    body: JSON.stringify({
-      sessionId: '433e41',
-      runId: 'post-fix',
-      hypothesisId: 'H6',
-      location: 'engine.js:installDestinationTap',
-      message: 'AudioNode.connect hijack to gainNode',
-      data: hijack,
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
+  installDestinationTap();
 
-  // #region agent log
-  {
-    const tracks = recordingStream.getAudioTracks().map((t) => ({
-      kind: t.kind,
-      label: t.label,
-      muted: t.muted,
-      enabled: t.enabled,
-      readyState: t.readyState,
-      deviceId: t.getSettings?.()?.deviceId || null,
-    }));
-    fetch('http://127.0.0.1:7933/ingest/78025de6-1b1b-47cb-aad6-3e716215696d', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '433e41' },
-      body: JSON.stringify({
-        sessionId: '433e41',
-        runId: 'pre-fix',
-        hypothesisId: 'H1',
-        location: 'engine.js:initEngine',
-        message: 'recordingDest created (not getUserMedia)',
-        data: {
-          usedGetUserMedia: false,
-          trackCount: tracks.length,
-          tracks,
-          ctxState: audioContext.state,
-          sampleRate: audioContext.sampleRate,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-  }
-  // #endregion
 
   try {
     const { initStrudel } = await import('@strudel/web');
@@ -164,46 +127,7 @@ export async function initEngine() {
     }
     await soundsReady;
 
-    const tap = await tapSuperdoughThroughGain();
-    // #region agent log
-    fetch('http://127.0.0.1:7933/ingest/78025de6-1b1b-47cb-aad6-3e716215696d', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '433e41' },
-      body: JSON.stringify({
-        sessionId: '433e41',
-        runId: 'post-fix',
-        hypothesisId: 'H2',
-        location: 'engine.js:tapSuperdoughThroughGain',
-        message: 'reroute superdough into gainNode',
-        data: tap,
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-    // #region agent log
-    {
-      let sameCtx = null;
-      try {
-        const { getAudioContext } = await import('superdough');
-        sameCtx = audioContext === getAudioContext();
-      } catch {
-        sameCtx = 'import-failed';
-      }
-      fetch('http://127.0.0.1:7933/ingest/78025de6-1b1b-47cb-aad6-3e716215696d', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '433e41' },
-        body: JSON.stringify({
-          sessionId: '433e41',
-          runId: 'post-fix',
-          hypothesisId: 'H6',
-          location: 'engine.js:afterTap',
-          message: 'ctx identity + hijack count',
-          data: { sameCtx, hijackCount: window.__flowHijackCount || 0 },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-    }
-    // #endregion
+    await tapSuperdoughThroughGain();
   } catch (err) {
     console.error('Strudel init failed:', err);
     strudelInstance = createFallbackScheduler();
@@ -221,6 +145,29 @@ export async function initEngine() {
     scheduler: strudelInstance,
     gainNode,
     recordingStream: recordingDest.stream,
+  };
+}
+
+export async function initEngine() {
+  if (!boot) {
+    boot = createEngineOnce().catch((err) => {
+      boot = null;
+      throw err;
+    });
+  }
+  await boot;
+  if (audioContext?.state === 'suspended') {
+    await audioContext.resume();
+  }
+  installDestinationTap();
+  if (soundsReady) await soundsReady;
+  await tapSuperdoughThroughGain();
+  return {
+    audioContext,
+    analyser,
+    scheduler: strudelInstance,
+    gainNode,
+    recordingStream,
   };
 }
 
@@ -305,4 +252,12 @@ function createFallbackScheduler() {
     stop: () => {},
     setPattern: () => {},
   };
+}
+
+export function getRecordingStream() {
+  return recordingStream;
+}
+
+export function getAnalyserNode() {
+  return analyser;
 }

@@ -30,10 +30,10 @@ export default defineConfig({
     alias: {
       '@backend': path.resolve(__dirname, 'backend/src'),
       '@shared': path.resolve(__dirname, 'shared'),
-      // Force one copy of the sound registry
-      '@strudel/webaudio': path.resolve(__dirname, 'node_modules/@strudel/webaudio'),
+      '@strudel/webaudio': path.resolve(__dirname, 'node_modules/@strudel/webaudio/dist/index.mjs'),
       '@strudel/core': path.resolve(__dirname, 'node_modules/@strudel/core'),
-      superdough: path.resolve(__dirname, 'node_modules/superdough'),
+      superdough: path.resolve(__dirname, 'node_modules/superdough/dist/index.mjs'),
+      soundfont2: path.resolve(__dirname, 'frontend/shims/soundfont2.js'),
     },
     // One sound map — avoid gm_* registering into a duplicate webaudio copy
     dedupe: [
@@ -47,13 +47,15 @@ export default defineConfig({
   optimizeDeps: {
     include: [
       '@strudel/web',
-      '@strudel/soundfonts',
       '@strudel/webaudio',
       '@strudel/core',
+      'soundfont2',
     ],
+    // soundfonts re-exports webaudio names via export * from superdough.
+    // Esbuild cannot see those when prebundling — skip optimize for this pkg.
     // One superdough singleton — prebundling it next to @strudel/web
     // created a second AudioContext (record was silent).
-    exclude: ['superdough'],
+    exclude: ['superdough', '@strudel/soundfonts'],
   },
   envDir: path.resolve(__dirname),
   build: {

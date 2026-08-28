@@ -24,6 +24,37 @@ function quantize(beats, step = BEAT_QUANT) {
   return Math.round(beats / step) * step;
 }
 
+function toMidiBuffer(arrayBuffer) {
+  if (arrayBuffer instanceof Uint8Array) {
+    return arrayBuffer.buffer.slice(
+      arrayBuffer.byteOffset,
+      arrayBuffer.byteOffset + arrayBuffer.byteLength,
+    );
+  }
+  return arrayBuffer;
+}
+
+/**
+ * MIDI file labels + stats (no Strudel).
+ * @param {ArrayBuffer | Uint8Array} arrayBuffer
+ * @returns {{ name: string, trackNames: string[], bpm: number, duration: number, noteCount: number }}
+ */
+export function peekMidiIdentity(arrayBuffer) {
+  const midi = new Midi(toMidiBuffer(arrayBuffer));
+  const trackNames = (midi.tracks || []).map((t) => t.name || '');
+  const noteCount = (midi.tracks || []).reduce(
+    (n, t) => n + (t.notes || []).length,
+    0,
+  );
+  return {
+    name: midi.name || '',
+    trackNames,
+    bpm: Math.round(midi.header.tempos?.[0]?.bpm || 120),
+    duration: midi.duration,
+    noteCount,
+  };
+}
+
 /**
  * @param {import('@tonejs/midi').Note[]} notes
  * @param {number} bpm
@@ -95,15 +126,7 @@ function pickSound(avgMidi, forceEpiano) {
  * @returns {{ code: string, meta: object }}
  */
 export function midiToStrudel(arrayBuffer, hint = '') {
-  let buf = arrayBuffer;
-  if (arrayBuffer instanceof Uint8Array) {
-    buf = arrayBuffer.buffer.slice(
-      arrayBuffer.byteOffset,
-      arrayBuffer.byteOffset + arrayBuffer.byteLength,
-    );
-  }
-
-  const midi = new Midi(buf);
+  const midi = new Midi(toMidiBuffer(arrayBuffer));
   const bpm = Math.round(midi.header.tempos?.[0]?.bpm || 120);
   const sourceDuration = midi.duration;
   const rawWindow = Math.min(MAX_ATTACH_SEC, sourceDuration);

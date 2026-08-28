@@ -3,7 +3,7 @@ import { FlowLogo } from './components/FlowLogo';
 import { Visualizer } from './features/visualizer';
 import { PromptInput } from './features/prompt';
 import { generatePattern } from '@backend/api';
-import { initEngine, playPattern, stopPattern, setEngineStatusCallback } from '@backend/audio';
+import { initEngine, playPattern, stopPattern, setEngineStatusCallback, getRecordingStream, getAnalyserNode } from '@backend/audio';
 import { findTemplate, matchTemplate } from '@backend/fallback';
 import {
   assertFileSize,
@@ -14,9 +14,9 @@ import {
 import { flowTrace } from '@backend/debug/flowTrace.js';
 import { visualSpecFromPrompt } from '@backend/visual';
 
-async function loadMidiToStrudel() {
+async function loadMidiAttach() {
   const mod = await import('@backend/attach/midiDistill.js');
-  return mod.midiToStrudel;
+  return mod;
 }
 
 export default function App() {
@@ -62,18 +62,15 @@ export default function App() {
     `${Math.floor(s / 60)}:${String(Math.floor(s) % 60).padStart(2, '0')}`;
 
   const ensureEngine = useCallback(async () => {
-    if (audioContextRef.current) {
-      if (audioContextRef.current.state === 'suspended') {
-        await audioContextRef.current.resume();
-      }
-      return;
-    }
     const engine = await initEngine();
     audioContextRef.current = engine.audioContext;
     analyserRef.current = engine.analyser;
     schedulerRef.current = engine.scheduler;
     gainNodeRef.current = engine.gainNode;
     recordingStreamRef.current = engine.recordingStream;
+    if (audioContextRef.current?.state === 'suspended') {
+      await audioContextRef.current.resume();
+    }
   }, []);
 
   useEffect(() => {
@@ -156,10 +153,10 @@ export default function App() {
         assertFileSize(file);
 
         if (kind === 'midi') {
-          setStatusText('Distilling MIDI…');
+          setStatusText('Reading MIDI…');
           const buf = await file.arrayBuffer();
-          const midiToStrudel = await loadMidiToStrudel();
-          const { code, meta } = midiToStrudel(buf, hint);
+          const midiMod = await loadMidiAttach();
+          const { code, meta } = midiMod.midiToStrudel(buf, hint);
           const cropMsg = `Looping first ${formatTime(meta.windowSec)} of ${formatTime(meta.duration)}`;
           setStatusText(cropMsg);
           await playCode(code, {
@@ -223,7 +220,7 @@ export default function App() {
       abortControllerRef.current = new AbortController();
       const signal = abortControllerRef.current.signal;
 
-      const { template, score, locked } = matchTemplate(promptText);
+      const { template, score } = matchTemplate(promptText);
       const visualSpec = visualSpecFromPrompt(promptText);
       flowTrace({
         src: 'route',
@@ -232,21 +229,6 @@ export default function App() {
         score,
         prompt: String(promptText).slice(0, 80),
       });
-      // #region agent log
-      fetch('http://127.0.0.1:7933/ingest/78025de6-1b1b-47cb-aad6-3e716215696d', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '433e41' },
-        body: JSON.stringify({
-          sessionId: '433e41',
-          runId: 'post-fix',
-          hypothesisId: 'P1',
-          location: 'App.jsx:handlePromptSubmit',
-          message: 'playback route',
-          data: { locked, templateId: template.id, score, kind: template.kind || 'vibe' },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
       flowTrace({
         src: 'visual',
         mode: visualSpec.mode,
@@ -254,16 +236,6 @@ export default function App() {
         dirX: Number(visualSpec.dirX.toFixed(2)),
         dirY: Number(visualSpec.dirY.toFixed(2)),
       });
-
-      if (locked) {
-        try {
-          await ensureEngine();
-          await playCode(template.code, { visualSpec });
-        } catch (err) {
-          setError(err.message || 'Playback failed');
-        }
-        return;
-      }
 
       const llm = generatePattern(promptText, '', signal);
 
@@ -315,95 +287,17 @@ export default function App() {
 
   const handleRecordToggle = useCallback(() => {
     if (isRecording) {
-      // #region agent log
-      {
-        const data = analyserRef.current
-          ? (() => {
-              const buf = new Uint8Array(analyserRef.current.frequencyBinCount);
-              analyserRef.current.getByteFrequencyData(buf);
-              return { analyserMax: Math.max(...buf), analyserAvg: buf.reduce((a, b) => a + b, 0) / buf.length };
-            })()
-          : { analyserMax: null };
-        fetch('http://127.0.0.1:7933/ingest/78025de6-1b1b-47cb-aad6-3e716215696d', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '433e41' },
-          body: JSON.stringify({
-            sessionId: '433e41',
-            runId: 'pre-fix',
-            hypothesisId: 'H2',
-            location: 'App.jsx:handleRecordToggle:stop',
-            message: 'stop record + analyser on gainNode',
-            data: { ...data, isPlaying, recState: mediaRecorderRef.current?.state },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-      }
-      // #endregion
       if (mediaRecorderRef.current?.state === 'recording') {
         mediaRecorderRef.current.stop();
       }
       setIsRecording(false);
     } else {
-      if (!recordingStreamRef.current) return;
+      if (!recordingStreamRef.current && !getRecordingStream()) return;
 
-      const stream = recordingStreamRef.current;
-      const tracks = stream.getAudioTracks().map((t) => ({
-        kind: t.kind,
-        label: t.label,
-        muted: t.muted,
-        enabled: t.enabled,
-        readyState: t.readyState,
-        settings: t.getSettings?.() || {},
-      }));
-      const analyserSnap = analyserRef.current
-        ? (() => {
-            const buf = new Uint8Array(analyserRef.current.frequencyBinCount);
-            analyserRef.current.getByteFrequencyData(buf);
-            return { analyserMax: Math.max(...buf), analyserAvg: buf.reduce((a, b) => a + b, 0) / buf.length };
-          })()
-        : { analyserMax: null };
-
-      // #region agent log
-      fetch('http://127.0.0.1:7933/ingest/78025de6-1b1b-47cb-aad6-3e716215696d', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '433e41' },
-        body: JSON.stringify({
-          sessionId: '433e41',
-          runId: 'pre-fix',
-          hypothesisId: 'H1',
-          location: 'App.jsx:handleRecordToggle:start',
-          message: 'start record stream snapshot',
-          data: {
-            isPlaying,
-            hasStream: !!stream,
-            trackCount: tracks.length,
-            tracks,
-            looksLikeMic: tracks.some((t) => t.settings.deviceId || t.settings.echoCancellation != null),
-            ...analyserSnap,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
-      // #region agent log
-      fetch('http://127.0.0.1:7933/ingest/78025de6-1b1b-47cb-aad6-3e716215696d', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '433e41' },
-        body: JSON.stringify({
-          sessionId: '433e41',
-          runId: 'post-fix',
-          hypothesisId: 'H6',
-          location: 'App.jsx:handleRecordToggle:start:h6',
-          message: 'hijack count at record start',
-          data: {
-            hijackCount: window.__flowHijackCount || 0,
-            analyserMax: analyserSnap.analyserMax,
-            isPlaying,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
+      const stream = getRecordingStream() || recordingStreamRef.current;
+      recordingStreamRef.current = stream;
+      const liveAnalyser = getAnalyserNode() || analyserRef.current;
+      analyserRef.current = liveAnalyser;
 
       const recorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm;codecs=opus',
@@ -412,88 +306,9 @@ export default function App() {
 
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunks.push(e.data);
-        // #region agent log
-        if (chunks.length <= 1) {
-          fetch('http://127.0.0.1:7933/ingest/78025de6-1b1b-47cb-aad6-3e716215696d', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '433e41' },
-            body: JSON.stringify({
-              sessionId: '433e41',
-              runId: 'pre-fix',
-              hypothesisId: 'H3',
-              location: 'App.jsx:ondataavailable',
-              message: 'first recorder chunk',
-              data: { size: e.data.size, chunkCount: chunks.length },
-              timestamp: Date.now(),
-            }),
-          }).catch(() => {});
-        }
-        // #endregion
       };
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: 'audio/webm;codecs=opus' });
-        // #region agent log
-        const ctx = audioContextRef.current;
-        blob
-          .arrayBuffer()
-          .then((ab) => {
-            if (!ctx) {
-              fetch('http://127.0.0.1:7933/ingest/78025de6-1b1b-47cb-aad6-3e716215696d', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '433e41' },
-                body: JSON.stringify({
-                  sessionId: '433e41',
-                  runId: 'pre-fix',
-                  hypothesisId: 'H3',
-                  location: 'App.jsx:onstop',
-                  message: 'blob no ctx to decode',
-                  data: { blobSize: blob.size, chunks: chunks.length },
-                  timestamp: Date.now(),
-                }),
-              }).catch(() => {});
-              return null;
-            }
-            return ctx.decodeAudioData(ab.slice(0)).then((audioBuf) => {
-              const ch = audioBuf.getChannelData(0);
-              let peak = 0;
-              for (let i = 0; i < ch.length; i += 1) peak = Math.max(peak, Math.abs(ch[i]));
-              fetch('http://127.0.0.1:7933/ingest/78025de6-1b1b-47cb-aad6-3e716215696d', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '433e41' },
-                body: JSON.stringify({
-                  sessionId: '433e41',
-                  runId: 'pre-fix',
-                  hypothesisId: 'H2',
-                  location: 'App.jsx:onstop',
-                  message: 'decoded recording peak',
-                  data: {
-                    blobSize: blob.size,
-                    chunks: chunks.length,
-                    duration: audioBuf.duration,
-                    peak,
-                    silent: peak < 0.001,
-                  },
-                  timestamp: Date.now(),
-                }),
-              }).catch(() => {});
-            });
-          })
-          .catch((err) => {
-            fetch('http://127.0.0.1:7933/ingest/78025de6-1b1b-47cb-aad6-3e716215696d', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '433e41' },
-              body: JSON.stringify({
-                sessionId: '433e41',
-                runId: 'pre-fix',
-                hypothesisId: 'H4',
-                location: 'App.jsx:onstop',
-                message: 'decode failed',
-                data: { blobSize: blob.size, chunks: chunks.length, error: String(err?.message || err) },
-                timestamp: Date.now(),
-              }),
-            }).catch(() => {});
-          });
-        // #endregion
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -506,7 +321,7 @@ export default function App() {
       mediaRecorderRef.current = recorder;
       setIsRecording(true);
     }
-  }, [isRecording, isPlaying]);
+  }, [isRecording]);
 
   const handleFullscreen = () => {
     if (!document.fullscreenElement) {

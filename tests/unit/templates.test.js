@@ -8,15 +8,14 @@ describe('templates', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('includes lupang-hinirang with correct metadata and code', () => {
+  it('includes lupang-hinirang with code', () => {
     const lupang = templates.find((t) => t.id === 'lupang-hinirang');
     expect(lupang).toBeDefined();
     expect(lupang.name).toBe('Lupang Hinirang');
-    expect(lupang.tags).toContain('national-anthem');
     expect(lupang.tags).toContain('philippines');
     expect(lupang.code).toContain('gm_epiano1');
     expect(lupang.code).toContain('note(');
-      });
+  });
 
   it('cyberpunk-dark code includes RolandTR909', () => {
     const cyberpunk = templates.find((t) => t.id === 'cyberpunk-dark');

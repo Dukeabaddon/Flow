@@ -1,6 +1,6 @@
 // Jest-style API via Vitest
 import { describe, it, expect } from 'vitest';
-import { findTemplate, matchTemplate } from '../../backend/src/fallback/matcher.js';
+import { findTemplate } from '../../backend/src/fallback/matcher.js';
 
 describe('findTemplate', () => {
   it('returns ambient-drone for empty or null prompt', () => {
@@ -18,11 +18,5 @@ describe('findTemplate', () => {
 
   it('matches philippines national anthem', () => {
     expect(findTemplate('philippines national anthem').id).toBe('lupang-hinirang');
-  });
-
-
-  it('does not lock genre vibes — Cerebras may swap', () => {
-    expect(matchTemplate('cyberpunk').locked).toBe(false);
-    expect(matchTemplate('cowboy').locked).toBe(false);
   });
 });

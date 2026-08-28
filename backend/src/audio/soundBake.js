@@ -93,7 +93,7 @@ async function registerGmIntoWebMap() {
   } = web;
 
   const { getFontBufferSource, setSoundfontUrl } = await import(
-    '@strudel/soundfonts'
+    '@strudel/soundfonts/fontloader.mjs'
   );
   const gmMod = await import('@strudel/soundfonts/gm.mjs');
   const gm = gmMod.default || gmMod;
@@ -190,12 +190,9 @@ export function bakeStrudelSounds(onStatus = () => {}) {
   bakePromise = (async () => {
     installSoundfontCacheFetch();
 
-    // Maps first (JSON). GM font files prefetch in the background — do not block play.
-    const n = await registerGmIntoWebMap();
-    if (!n) throw new Error('No GM sounds registered');
-
     const { samples, aliasBank, getSound } = await import('@strudel/web');
 
+    // Drums first — waveform + 808/909 songs must play even if GM fonts fail
     await Promise.all([
       samples(
         'https://strudel.cc/tidal-drum-machines.json',
@@ -209,17 +206,21 @@ export function bakeStrudelSounds(onStatus = () => {}) {
       await aliasBank('https://strudel.cc/tidal-drum-machines-alias.json');
     }
 
-    if (!getSound?.('gm_epiano1')?.onTrigger) {
-      throw new Error('gm_epiano1 lost after sample loads');
+    try {
+      const n = await registerGmIntoWebMap();
+      if (!n) console.warn('[flow] No GM sounds registered');
+    } catch (err) {
+      console.warn('GM bake skipped (SoundFont2/sfumato):', err?.message || err);
     }
-    if (!getSound?.('RolandTR909_bd')?.onTrigger) {
+
+    if (!getSound?.('RolandTR909_bd')?.onTrigger && !getSound?.('RolandTR808_bd')?.onTrigger) {
       throw new Error(
-        'RolandTR909_bd missing after drum-machine load — 909 drums will be silent',
+        'No 909/808 kick after drum-machine load — drums will be silent',
       );
     }
 
     console.info(
-      `[flow] drums ok: RolandTR909_bd=${!!getSound('RolandTR909_bd')}, RolandTR808_hh=${!!getSound('RolandTR808_hh')}`,
+      `[flow] drums ok: RolandTR909_bd=${!!getSound('RolandTR909_bd')}, RolandTR808_hh=${!!getSound('RolandTR808_hh')}, gm_epiano1=${!!getSound('gm_epiano1')}`,
     );
 
     prefetchSoundfontsToCache(PREFETCH_FONTS).catch((err) => {

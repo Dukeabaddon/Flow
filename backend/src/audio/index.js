@@ -5,6 +5,8 @@ export {
   getAnalyserData,
   sanitizePatternCode,
   setEngineStatusCallback,
+  getRecordingStream,
+  getAnalyserNode,
 } from './engine.js';
 
 
