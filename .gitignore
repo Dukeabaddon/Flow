@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment variables (contains API keys)
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+.cursor/*.log
+
+# Secrets / certs
+*.pem
+*.key
+credentials.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Gate MCP cache
+.gate-mcp/
+
+# Graphify output
+graphify-out/
+
+# Logs
+*.log
+npm-debug.log*
+.flow-trace.ndjson
+
+# Test output
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/

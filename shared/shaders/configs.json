@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "description": "Shader uniform configurations — shared reference for documentation",
+  "uniforms": {
+    "u_time": "float — animation elapsed time in seconds",
+    "u_resolution": "vec2 — canvas width/height in pixels",
+    "u_bass": "float — bass frequency level 0.0-1.0 from AnalyserNode",
+    "u_color1": "vec3 — primary RGB color from config",
+    "u_color2": "vec3 — secondary RGB color from config",
+    "u_complexity": "float — pattern complexity multiplier 1.0-6.0",
+    "u_speed": "float — animation speed multiplier 0.3-2.5"
+  },
+  "configCount": 30,
+  "note": "Actual configs are in frontend/src/features/visualizer/shaders/configs.json"
+}

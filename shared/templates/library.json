@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "description": "Flow pre-cached template library for API fallback",
+  "templates": [
+    {
+      "id": "ambient-drone",
+      "name": "Ambient Drone",
+      "tags": ["ambient", "calm", "soft", "default", "fallback", "chill"],
+      "bpm": 60
+    },
+    {
+      "id": "cyberpunk-dark",
+      "name": "Cyberpunk Dark",
+      "tags": ["cyberpunk", "dark", "techno", "industrial"],
+      "bpm": 128
+    },
+    {
+      "id": "lofi-chill",
+      "name": "Lo-Fi Chill",
+      "tags": ["lofi", "chill", "hip-hop", "beats", "study"],
+      "bpm": 85
+    },
+    {
+      "id": "techno-warehouse",
+      "name": "Techno Warehouse",
+      "tags": ["techno", "warehouse", "rave", "hard", "dance"],
+      "bpm": 140
+    }
+  ]
+}
