@@ -37,6 +37,7 @@ describe('gates', () => {
 
   it('barAlignWindowSec aligns to whole 4/4 bars', () => {
     expect(barAlignWindowSec(60, 120)).toBe(60);
+    expect(barAlignWindowSec(1.5, 120)).toBe(1.5);
   });
 
   it('attachSlowFactor matches window cycle', () => {

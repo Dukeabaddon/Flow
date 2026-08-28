@@ -26,7 +26,9 @@ export function attachExcerptSec(durationSec) {
  */
 export function barAlignWindowSec(windowSec, bpm = 120) {
   const barSec = (4 * 60) / bpm;
-  const bars = Math.max(1, Math.floor(windowSec / barSec));
+  if (!Number.isFinite(windowSec) || windowSec <= 0) return barSec;
+  if (windowSec < barSec) return windowSec;
+  const bars = Math.floor(windowSec / barSec);
   return bars * barSec;
 }
 

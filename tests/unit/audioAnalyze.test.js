@@ -12,8 +12,20 @@ describe('buildAudioExperimentPrompt', () => {
       filename: 'song.mp3',
     });
 
-    expect(prompt).toMatch(/1:00|first minute|60s/i);
+    expect(prompt).toMatch(/1:00|first minute/i);
     expect(prompt).toMatch(/Do NOT recreate/i);
     expect(prompt).toContain('song.mp3');
+  });
+
+  it('short file prompt does not claim a 1:00 crop', () => {
+    const prompt = buildAudioExperimentPrompt({
+      duration: 20,
+      excerptSec: 20,
+      estimatedBpm: 100,
+      energy: 0.02,
+      filename: 'clip.wav',
+    });
+    expect(prompt).toMatch(/full file/i);
+    expect(prompt).not.toMatch(/first 1:00/);
   });
 });

@@ -131,7 +131,9 @@ export function buildAudioExperimentPrompt(analysis, hint = '') {
     'Use waveforms (sine/sawtooth/square/triangle), Dirt drums (bd/hh/cp), and GM fonts (gm_epiano1, gm_piano) like strudel.cc.',
     'Prefer gm_epiano1 or sine for melodic piano-like parts.',
     `File: ${analysis.filename}`,
-    `Duration: ${totalMmSs} total — analyzed first ${excerptMmSs} (${analysis.excerptSec}s / first 1:00)`,
+    analysis.duration > 60
+      ? `Duration: ${totalMmSs} total — analyzed first ${excerptMmSs} (first 1:00)`
+      : `Duration: ${totalMmSs} (full file)`,
     `Estimated BPM: ${analysis.estimatedBpm}`,
     `Energy feel: ${vibe}`,
     hint?.trim() ? `User hint: ${hint.trim()}` : '',

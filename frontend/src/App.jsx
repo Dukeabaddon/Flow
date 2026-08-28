@@ -59,12 +59,7 @@ export default function App() {
   }, [isPlaying]);
 
   const formatTime = (s) =>
-    `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-
-  const formatMmSs = (sec) => {
-    const s = Math.floor(sec);
-    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-  };
+    `${Math.floor(s / 60)}:${String(Math.floor(s) % 60).padStart(2, '0')}`;
 
   const ensureEngine = useCallback(async () => {
     if (audioContextRef.current) {
@@ -165,7 +160,7 @@ export default function App() {
           const buf = await file.arrayBuffer();
           const midiToStrudel = await loadMidiToStrudel();
           const { code, meta } = midiToStrudel(buf, hint);
-          const cropMsg = `Looping first ${formatMmSs(meta.windowSec)} of ${formatMmSs(meta.duration)}`;
+          const cropMsg = `Looping first ${formatTime(meta.windowSec)} of ${formatTime(meta.duration)}`;
           setStatusText(cropMsg);
           await playCode(code, {
             fallbackPrompt: hint || 'piano',
@@ -179,7 +174,7 @@ export default function App() {
         // Audio path — analyze offline (does not touch live engine)
         setStatusText('Analyzing audio…');
         const analysis = await analyzeAudioFile(file);
-        const cropMsg = `Looping first ${formatMmSs(analysis.excerptSec)} of ${formatMmSs(analysis.duration)}`;
+        const cropMsg = `Looping first ${formatTime(analysis.excerptSec)} of ${formatTime(analysis.duration)}`;
         setStatusText(cropMsg);
         const prompt = buildAudioExperimentPrompt(analysis, hint);
 
