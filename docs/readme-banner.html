@@ -6,7 +6,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
       rel="stylesheet"
     />
     <style>
@@ -15,7 +15,7 @@
         margin: 0;
         width: 2172px;
         height: 724px;
-        background: #ffffff;
+        background: #000000;
         overflow: hidden;
       }
       .banner {
@@ -24,52 +24,52 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 56px;
-        background: #ffffff;
+        gap: 48px;
+        background: #000000;
       }
       .mark {
-        width: 268px;
-        height: 268px;
+        width: 220px;
+        height: 220px;
         flex-shrink: 0;
+        filter: drop-shadow(0 1px 8px rgba(0, 0, 0, 0.55));
       }
       .word {
-        font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        font-weight: 800;
-        font-size: 168px;
-        letter-spacing: -4px;
-        color: #0b1f3a;
+        font-family: 'Press Start 2P', monospace;
+        font-size: 72px;
+        letter-spacing: 28px;
+        color: #ffffff;
+        -webkit-text-fill-color: #ffffff;
+        text-shadow: 0 1px 10px rgba(0, 0, 0, 0.75);
         line-height: 1;
         margin: 0;
+        padding-right: 8px;
       }
     </style>
   </head>
   <body>
     <div class="banner">
-      <svg class="mark" viewBox="0 0 128 128" aria-hidden="true">
-        <!-- Open C-ring, same family as Careero compass-C -->
+      <!-- Same paths as frontend/src/components/FlowLogo.jsx -->
+      <svg
+        class="mark"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
         <path
-          d="M98 28.5a52 52 0 1 0 0 71"
-          fill="none"
-          stroke="#F5C400"
-          stroke-width="16"
+          d="M4 16c4-8 8-8 12 0s8 8 12 0"
+          stroke="#ffffff"
+          stroke-width="2.5"
           stroke-linecap="round"
         />
         <path
-          d="M36 54c14-22 28-22 42 0s28 22 42 0"
-          fill="none"
-          stroke="#F5C400"
-          stroke-width="8"
-          stroke-linecap="round"
-        />
-        <path
-          d="M36 76c14-16 28-16 42 0s28 16 42 0"
-          fill="none"
-          stroke="#F5C400"
-          stroke-width="6.5"
+          d="M4 22c4-6 8-6 12 0s8 6 12 0"
+          stroke="#ffffff"
+          stroke-width="2"
           stroke-linecap="round"
         />
       </svg>
-      <p class="word">Flow</p>
+      <p class="word">FLOW</p>
     </div>
   </body>
 </html>
