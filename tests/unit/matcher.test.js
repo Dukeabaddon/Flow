@@ -1,6 +1,6 @@
 // Jest-style API via Vitest
 import { describe, it, expect } from 'vitest';
-import { findTemplate } from '../../backend/src/fallback/matcher.js';
+import { findTemplate } from '../../backend/src/library/matcher.js';
 
 describe('findTemplate', () => {
   it('returns ambient-drone for empty or null prompt', () => {

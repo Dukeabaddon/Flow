@@ -1,6 +1,6 @@
 // Jest-style API via Vitest
 import { describe, it, expect } from 'vitest';
-import { templates } from '../../backend/src/fallback/templates.js';
+import { templates } from '../../backend/src/library/templates.js';
 
 describe('templates', () => {
   it('has unique ids', () => {

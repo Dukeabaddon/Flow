@@ -4,7 +4,7 @@ import { Visualizer } from './features/visualizer';
 import { PromptInput } from './features/prompt';
 import { generatePattern } from '@backend/api';
 import { initEngine, playPattern, stopPattern, setEngineStatusCallback, getRecordingStream, getAnalyserNode } from '@backend/audio';
-import { findTemplate, matchTemplate } from '@backend/fallback';
+import { findTemplate, matchTemplate } from '@backend/library';
 import {
   assertFileSize,
   detectAttachKind,
